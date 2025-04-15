@@ -1,0 +1,69 @@
+
+1. What Happens When You Submit a Spark Job?
+When you submit a Spark job, the following steps happen internally:
+
+Step-by-Step Flow
+Job Submission
+You submit your application (using spark-submit or a notebook).
+The Driver program starts.
+Driver Program
+The driver defines the Spark context and builds a Directed Acyclic Graph (DAG) of stages and tasks.
+It requests resources from the Cluster Manager (like YARN, Mesos, or Kubernetes).
+Cluster Manager
+The driver asks the cluster manager for resources (executors).
+The cluster manager allocates containers/VMs on worker nodes.
+Executor Launch
+Executors (JVM processes) are started on worker nodes.
+Executors run tasks and store data.
+Task Scheduling
+The driver breaks the job into stages and tasks (one per data partition).
+Tasks are sent to executors.
+Task Execution
+Executors run tasks (map, filter, reduce, etc.) on data partitions.
+Data may be shuffled between executors if needed (e.g., for joins).
+Result Collection
+Results are sent back to the driver (for actions like collect or count).
+For output actions (like saveAsTextFile), data is written to storage.
+Job Completion
+Once all tasks finish, the job is marked complete.
+Executors may stay alive for more jobs or shut down.
+Diagram:
+
+CopyInsert
+User submits job
+       ↓
+     Driver
+       ↓
+ Cluster Manager
+       ↓
+   Executors
+       ↓
+     Tasks
+       ↓
+   Results
+2. Spark Executor Memory Configuration (Simple Explanation)
+Main Memory Areas
+Executor Memory (spark.executor.memory): Main memory for tasks and caching.
+Execution Memory: For computations (shuffles, joins, etc.).
+Storage Memory: For caching RDDs/DataFrames.
+These two areas can borrow from each other as needed.
+Reserved Memory: Small fixed part for Spark’s internal use (default: 300MB).
+Overhead: Extra buffer for JVM and system processes (default: 10% of executor memory, minimum 384MB).
+Off-Heap Memory: Extra memory outside the JVM (disabled by default).
+Simple Diagram
+CopyInsert
+[ Executor Container (Total Memory) ]
+    ├── Reserved Memory (300MB)
+    ├── Overhead (10% or min 384MB)
+    └── Executor Memory (rest)
+           ├── Execution Memory (for tasks)
+           └── Storage Memory (for cache)
+Quick Rules
+Set spark.executor.memory for your tasks and caching.
+Overhead and reserved memory are managed by Spark.
+Execution and storage memory are dynamically managed, but you can tune them if needed.
+Summary Table
+| Memory Area | Purpose | How to Set / Default | |--------------------|----------------------------------|-------------------------------------| | Executor Memory | Tasks + Caching | spark.executor.memory | | Execution Memory | Computation (shuffles, joins) | Dynamic, part of executor memory | | Storage Memory | Caching RDDs/DataFrames | Dynamic, part of executor memory | | Reserved Memory | Internal Spark needs | 300MB (default) | | Overhead | JVM, user code, etc. | 10% of executor memory (min 384MB) | | Off-Heap | Special, outside JVM | Disabled by default |
+
+Tip:
+Usually, you only need to set spark.executor.memory and let Spark handle the rest unless you have special needs.
